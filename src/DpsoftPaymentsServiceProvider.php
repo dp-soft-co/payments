@@ -13,6 +13,7 @@ use Dpsoft\Payments\Classes\ThawaniPayment;
 use Dpsoft\Payments\Classes\TapPayment;
 use Dpsoft\Payments\Classes\OpayPayment;
 use Dpsoft\Payments\Classes\PaymobWalletPayment;
+use Dpsoft\Payments\Classes\MyFatoorahPayment;
 
 class DpsoftPaymentsServiceProvider extends ServiceProvider
 {
@@ -83,6 +84,9 @@ class DpsoftPaymentsServiceProvider extends ServiceProvider
         });
         $this->app->bind(PaytabsPayment::class, function () {
             return new PaytabsPayment();
+        });
+        $this->app->bind(MyFatoorahPayment::class, function () {
+            return new MyFatoorahPayment();
         });
     }
 
