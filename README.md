@@ -34,7 +34,7 @@ Payment Helper for Laravel — supports PayPal, Paymob, Kashier, Fawry, HyperPay
 ## Installation
 
 ```bash
-composer require dp-soft-co/payments:^1.0
+composer require dp-soft-co/payments
 ```
 
 ## Publish Vendor Files
