@@ -4,7 +4,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 [![Packagist](https://img.shields.io/badge/Composer-dp--soft--co/payments-blue)](https://packagist.org/packages/dp-soft-co/payments)
 
-Payment Helper for Laravel — supports PayPal, Paymob, Kashier, Fawry, HyperPay, Thawani, Tap, Opay, Paytabs, Binance, PerfectMoney, NowPayments, Payeer, Telr, Clickpay, and E-Wallets (Vodafone Cash, Orange Money, Meza Wallet, Etisalat Cash).
+Payment Helper for Laravel — supports PayPal, Paymob, Kashier, Fawry, HyperPay, Thawani, Tap, Opay, Paytabs, Binance, PerfectMoney, NowPayments, Payeer, Telr, Clickpay, MyFatoorah, and E-Wallets (Vodafone Cash, Orange Money, Meza Wallet, Etisalat Cash).
 
 ![payment-gateways.jpg](https://github.com/dp-soft-co/payments/blob/master/payment-gateways.jpg?raw=true&v=6)
 
@@ -29,6 +29,7 @@ Payment Helper for Laravel — supports PayPal, Paymob, Kashier, Fawry, HyperPay
 - [Payeer](https://payeer.com)
 - [Telr](https://telr.com)
 - [Clickpay](https://clickpay.com.sa/)
+- [MyFatoorah](https://myfatoorah.com/)
 - [E Wallets (Vodafone Cash - Orange Money - Meza Wallet - Etisalat Cash)](https://paymob.com/)
 
 ## Installation
@@ -155,7 +156,14 @@ return [
 
     #CLICKPAY
     'CLICKPAY_SERVER_KEY'=>env('CLICKPAY_SERVER_KEY'),
-    'CLICKPAY_PROFILE_ID'=>env('CLICKPAY_PROFILE_ID')
+    'CLICKPAY_PROFILE_ID'=>env('CLICKPAY_PROFILE_ID'),
+
+
+    #MYFATOORAH
+    'MYFATOORAH_API_KEY'=>env('MYFATOORAH_API_KEY'),
+    'MYFATOORAH_MODE'=>env('MYFATOORAH_MODE','test'),//test or live
+    'MYFATOORAH_COUNTRY'=>env('MYFATOORAH_COUNTRY',''),//eg,sa,ae,qa or empty for global
+    'MYFATOORAH_CURRENCY'=>env('MYFATOORAH_CURRENCY','KWD'),
 
     'VERIFY_ROUTE_NAME' => "verify-payment",
     'APP_NAME'=>env('APP_NAME'),
@@ -237,6 +245,7 @@ and the factory will return the payment instance for you , use it as you want ;)
 - **Kashier**: `brandColor` automatically reads `primary_color` from project settings (via `app('cached_data')` or DB fallback)
 - **Kashier**: `iframeBackgroundColor` support for iframe styling
 - Removed hardcoded test API keys from config for security
+- **MyFatoorah**: Added support for **Embedded Payment v3** (`POST /v3/sessions`) with AES-128-CBC payment data decryption and hosted payment method fallback via `GetPaymentStatus`
 
 ## Some Test Cards
 
