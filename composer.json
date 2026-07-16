@@ -1,0 +1,42 @@
+{
+  "name": "dp-soft-co/payments",
+  "license": "MIT",
+  "description": "Payment helper for Paypal, Paymob, Kashier, Hyperpay, Fawry and more - Forked from nafezly/payments with Kashier Payment Sessions API fix",
+  "keywords": [
+    "online payments",
+    "paypal",
+    "paymob",
+    "kashier",
+    "hyperpay",
+    "fawry",
+    "laravel payments"
+  ],
+  "autoload": {
+    "psr-4": {
+      "Dpsoft\\Payments\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=7.0",
+    "laravel/framework": ">=6.0",
+    "paypal/paypal-checkout-sdk": "1.0.2",
+    "ext-json": "*",
+    "ext-curl": "*"
+  },
+  "authors": [
+    {
+      "name": "dpsoft-labs",
+      "email": "adelalezzawi@gmail.com"
+    }
+  ],
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Dpsoft\\Payments\\DpsoftPaymentsServiceProvider"
+      ],
+      "aliases": {
+        "DpsoftPayments": "Dpsoft\\Payments\\Facades"
+      }
+    }
+  }
+}
