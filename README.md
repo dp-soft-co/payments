@@ -1,11 +1,14 @@
 # Dpsoft Payment Gateways
 
-[![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/sindresorhus/awesome)
+[![Latest Version](https://img.shields.io/github/v/tag/dp-soft-co/payments)](https://github.com/dp-soft-co/payments/tags)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
-[![Made With Love](https://img.shields.io/badge/Made%20With-Love-orange.svg)](https://github.com/chetanraj/awesome-github-badges)
+[![Packagist](https://img.shields.io/badge/Composer-dp--soft--co/payments-blue)](https://packagist.org/packages/dp-soft-co/payments)
 
-Payment Helper of Payment Gateways ( PayPal - Paymob - Fawry - Thawani - WeAccept - Kashier - Hyperpay - Tap - Opay - Paytabs - Vodafone Cash - Orange Money - Meza Wallet - Etisalat Cash)
-![payment-gateways.jpg](https://github.com/dpsoft-labs/payments/blob/master/payment-gateways.jpg?raw=true&v=6)
+Payment Helper for Laravel — supports PayPal, Paymob, Kashier, Fawry, HyperPay, Thawani, Tap, Opay, Paytabs, Binance, PerfectMoney, NowPayments, Payeer, Telr, Clickpay, and E-Wallets (Vodafone Cash, Orange Money, Meza Wallet, Etisalat Cash).
+
+![payment-gateways.jpg](https://github.com/dp-soft-co/payments/blob/master/payment-gateways.jpg?raw=true&v=6)
+
+> **Forked from [nafezly/payments](https://github.com/nafezly/payments)** with Kashier Payment Sessions API fix and improvements.
 
 
 ## Supported gateways
@@ -30,8 +33,8 @@ Payment Helper of Payment Gateways ( PayPal - Paymob - Fawry - Thawani - WeAccep
 
 ## Installation
 
-```jsx
-composer require dpsoft-labs/payments dev-master
+```bash
+composer require dp-soft-co/payments:^1.0
 ```
 
 ## Publish Vendor Files
@@ -169,7 +172,7 @@ Route::get('/payments/verify/{payment?}',[FrontController::class,'payment_verify
 ## How To Use
 
 ```jsx
-use Dpsoft\\Payments\PaymobPayment;
+use Dpsoft\Payments\Classes\PaymobPayment;
 
 $payment = new PaymobPayment();
 
@@ -217,7 +220,7 @@ $payment->verify($request);
 you can pass only method name without payment key word like (Fawry,Paymob,Opay ...etc) 
 and the factory will return the payment instance for you , use it as you want ;)
 ```php
-    $payment = new \Dpsoft\\Payments\Factories\PaymentFactory();
+    $payment = new \Dpsoft\Payments\Factories\PaymentFactory();
     $payment=$payment->get(string $paymentName)->pay(
 	$amount, 
 	$user_id = null, 
@@ -228,6 +231,13 @@ and the factory will return the payment instance for you , use it as you want ;)
 	$source = null
 );;
 ```
+## What's different from nafezly/payments?
+
+- **Kashier**: Migrated from deprecated `checkout.js` to **Payment Sessions API** (`POST /v3/payment/sessions`)
+- **Kashier**: `brandColor` automatically reads `primary_color` from project settings (via `app('cached_data')` or DB fallback)
+- **Kashier**: `iframeBackgroundColor` support for iframe styling
+- Removed hardcoded test API keys from config for security
+
 ## Some Test Cards
 
 - [Thawani](https://docs.thawani.om/docs/thawani-ecommerce-api/ZG9jOjEyMTU2Mjc3-thawani-test-card)
