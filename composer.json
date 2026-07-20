@@ -35,7 +35,7 @@
         "Dpsoft\\Payments\\DpsoftPaymentsServiceProvider"
       ],
       "aliases": {
-        "DpsoftPayments": "Dpsoft\\Payments\\Facades"
+        "DpsoftPayments": "Dpsoft\\Payments\\Facades\\DpsoftPaymentsFacade"
       }
     }
   }
