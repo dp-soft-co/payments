@@ -47,6 +47,8 @@ class PaymobWalletPayment extends BaseController implements PaymentInterface
         $required_fields = ['amount', 'user_first_name', 'user_last_name', 'user_email', 'user_phone'];
         $this->checkRequiredFields($required_fields, 'PayMob');
 
+        $payment_id = time() . '_' . ($this->user_id ?? 0);
+
         $payload = [
             'amount' => (int) round($this->amount * 100),
             'currency' => $this->currency,
@@ -72,7 +74,7 @@ class PaymobWalletPayment extends BaseController implements PaymentInterface
                 'last_name' => $this->user_last_name,
                 'email' => $this->user_email,
             ],
-            'delivery_needed' => false,
+            'special_reference' => $payment_id,
         ];
 
         if ($this->notificationUrl) {
@@ -90,16 +92,18 @@ class PaymobWalletPayment extends BaseController implements PaymentInterface
 
         $result = $response->json();
 
+        $orderId = $result['intention_order_id'] ?? $result['id'] ?? null;
+
         if (!$response->successful() || empty($result['client_secret'])) {
             return [
-                'payment_id' => $result['id'] ?? null,
+                'payment_id' => $orderId,
                 'html' => '<p>Wallet payment intention creation failed: ' . ($result['message'] ?? 'Unknown error') . '</p>',
                 'redirect_url' => ''
             ];
         }
 
         return [
-            'payment_id' => $result['id'],
+            'payment_id' => $orderId,
             'html' => '',
             'redirect_url' => $this->baseUrl . '/unifiedcheckout/?publicKey=' . $this->publicKey . '&clientSecret=' . $result['client_secret']
         ];
