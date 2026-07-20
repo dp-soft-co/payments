@@ -30,5 +30,17 @@ class PaymentFactory
         throw new \Exception("Invalid gateway");
     }
 
+    /**
+     * Alias for get() to provide a cleaner unified API.
+     *
+     * @param string $name
+     * @return PaymentInterface
+     * @throws \Exception
+     */
+    public function gateway(string $name): PaymentInterface
+    {
+        return $this->get($name);
+    }
+
 
 }

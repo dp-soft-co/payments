@@ -14,6 +14,7 @@ use Dpsoft\Payments\Classes\TapPayment;
 use Dpsoft\Payments\Classes\OpayPayment;
 use Dpsoft\Payments\Classes\PaymobWalletPayment;
 use Dpsoft\Payments\Classes\MyFatoorahPayment;
+use Dpsoft\Payments\Factories\PaymentFactory;
 
 class DpsoftPaymentsServiceProvider extends ServiceProvider
 {
@@ -54,6 +55,10 @@ class DpsoftPaymentsServiceProvider extends ServiceProvider
      */
     public function register()
     {
+
+        $this->app->singleton('dpsoft_payments', function () {
+            return new PaymentFactory();
+        });
 
         $this->app->bind(PaymobPayment::class, function () {
             return new PaymobPayment();
