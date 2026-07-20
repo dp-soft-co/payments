@@ -57,7 +57,7 @@ class PaymobWalletPayment extends BaseController implements PaymentInterface
         $payload = [
             'amount' => (int) round($this->amount * 100),
             'currency' => $this->currency,
-            'payment_methods' => [$this->walletIntegrationId],
+            'payment_methods' => [(int) $this->walletIntegrationId],
             'items' => [],
             'billing_data' => [
                 'apartment' => 'NA',
