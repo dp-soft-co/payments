@@ -117,11 +117,35 @@ class PaymobPayment extends BaseController implements PaymentInterface
             ];
         }
 
+        if (config('dpsoft-payments.PAYMOB_CHECKOUT_MODE', 'redirect') === 'pixel') {
+            return [
+                'payment_id' => $orderId,
+                'html' => $this->generatePixelHtml($result['client_secret'], $orderId),
+                'redirect_url' => ''
+            ];
+        }
+
         return [
             'payment_id' => $orderId,
             'html' => '',
             'redirect_url' => $this->baseUrl . '/unifiedcheckout/?publicKey=' . $this->publicKey . '&clientSecret=' . $result['client_secret']
         ];
+    }
+
+    private function generatePixelHtml(string $clientSecret, string|int $orderId): string
+    {
+        $elementId = 'paymob-pixel-' . preg_replace('/[^A-Za-z0-9_-]/', '-', (string) $orderId);
+        $paymentMethods = array_values(array_filter(array_map('trim', explode(',', config('dpsoft-payments.PAYMOB_PIXEL_PAYMENT_METHODS', 'card')))));
+        $publicKey = json_encode($this->publicKey, JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG);
+        $clientSecret = json_encode($clientSecret, JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG);
+        $paymentMethods = json_encode($paymentMethods, JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG);
+        $elementIdJson = json_encode($elementId, JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG);
+
+        return '<link rel="stylesheet" href="https://unpkg.com/paymob-pixel/styles.css">'
+            . '<link rel="stylesheet" href="https://unpkg.com/paymob-pixel/main.css">'
+            . '<div id="' . $elementId . '" style="min-height:500px"></div>'
+            . '<script src="https://unpkg.com/paymob-pixel/main.js" type="module"></script>'
+            . '<script>window.addEventListener("load", function () { new Pixel({publicKey:' . $publicKey . ',clientSecret:' . $clientSecret . ',paymentMethods:' . $paymentMethods . ',elementId:' . $elementIdJson . '}); });</script>';
     }
 
     /**
