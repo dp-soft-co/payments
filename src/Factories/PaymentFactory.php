@@ -4,6 +4,7 @@ namespace Dpsoft\Payments\Factories;
 
 use Dpsoft\Payments\Interfaces\PaymentInterface;
 use Dpsoft\Payments\Classes;
+use Illuminate\Http\Request;
 
 
 class PaymentFactory
@@ -42,5 +43,30 @@ class PaymentFactory
         return $this->get($name);
     }
 
+    /**
+     * Unified one-call payment: pick gateway, set data, and pay.
+     *
+     * @param string $gateway
+     * @param array $data
+     * @return array
+     * @throws \Exception
+     */
+    public function pay(string $gateway, array $data): array
+    {
+        return $this->gateway($gateway)->setPaymentData($data)->pay();
+    }
+
+    /**
+     * Unified one-call verification for any gateway.
+     *
+     * @param string $gateway
+     * @param Request $request
+     * @return array
+     * @throws \Exception
+     */
+    public function verify(string $gateway, Request $request): array
+    {
+        return $this->gateway($gateway)->verify($request);
+    }
 
 }

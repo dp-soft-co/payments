@@ -130,6 +130,35 @@ trait SetVariables
         if($user_phone!=null)$this->setUserPhone($user_phone);
         if($source!=null)$this->setSource($source);
     }
-    
+
+    /**
+     * Set all common payment data from an associative array.
+     * Extra keys are ignored, missing keys are left unchanged.
+     * Each gateway will validate only its own required fields.
+     *
+     * @param array $data
+     * @return $this
+     */
+    public function setPaymentData(array $data)
+    {
+        $map = [
+            'amount' => 'setAmount',
+            'user_id' => 'setUserId',
+            'user_first_name' => 'setUserFirstName',
+            'user_last_name' => 'setUserLastName',
+            'user_email' => 'setUserEmail',
+            'user_phone' => 'setUserPhone',
+            'source' => 'setSource',
+            'currency' => 'setCurrency',
+        ];
+
+        foreach ($map as $key => $method) {
+            if (array_key_exists($key, $data) && $data[$key] !== null) {
+                $this->$method($data[$key]);
+            }
+        }
+
+        return $this;
+    }
 
 }
