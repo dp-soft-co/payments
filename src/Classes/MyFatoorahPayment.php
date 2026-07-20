@@ -219,12 +219,9 @@ HTML;
             $status_response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->myfatoorah_api_key,
                 'Content-Type' => 'application/json',
-            ])->post($this->getApiBaseUrl() . '/v3/GetPaymentStatus', [
-                'Key' => $payment_id_from_url,
-                'KeyType' => 'PaymentId',
-            ])->json();
+            ])->get($this->getApiBaseUrl() . '/v3/payments/' . $payment_id_from_url)->json();
 
-            if (isset($status_response['IsSuccess']) && $status_response['IsSuccess'] && isset($status_response['Data']['InvoiceStatus']) && $status_response['Data']['InvoiceStatus'] === 'Paid') {
+            if (isset($status_response['Data']['Invoice']['Status']) && $status_response['Data']['Invoice']['Status'] === 'PAID') {
                 return [
                     'success' => true,
                     'payment_id' => $payment_id,

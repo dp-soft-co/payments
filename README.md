@@ -52,11 +52,14 @@ php artisan vendor:publish --tag="dpsoft-payments-lang"
 return [
 
     #PAYMOB
-    'PAYMOB_API_KEY' => env('PAYMOB_API_KEY'),
+    'PAYMOB_SECRET_KEY' => env('PAYMOB_SECRET_KEY'),
+    'PAYMOB_PUBLIC_KEY' => env('PAYMOB_PUBLIC_KEY'),
+    'PAYMOB_BASE_URL' => env('PAYMOB_BASE_URL', 'https://accept.paymob.com'),
     'PAYMOB_INTEGRATION_ID' => env('PAYMOB_INTEGRATION_ID'),
-    'PAYMOB_IFRAME_ID' => env('PAYMOB_IFRAME_ID'),
     'PAYMOB_HMAC' => env('PAYMOB_HMAC'),
     'PAYMOB_CURRENCY'=> env('PAYMOB_CURRENCY',"EGP"),
+    'PAYMOB_NOTIFICATION_URL' => env('PAYMOB_NOTIFICATION_URL'),
+    'PAYMOB_REDIRECTION_URL' => env('PAYMOB_REDIRECTION_URL'),
 
 
     #HYPERPAY
