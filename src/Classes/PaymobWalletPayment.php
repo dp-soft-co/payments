@@ -4,6 +4,7 @@ namespace Dpsoft\Payments\Classes;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Dpsoft\Payments\Exceptions\MissingPaymentInfoException;
 use Dpsoft\Payments\Interfaces\PaymentInterface;
 use Dpsoft\Payments\Classes\BaseController;
@@ -28,6 +29,10 @@ class PaymobWalletPayment extends BaseController implements PaymentInterface
         $this->hmacSecret = config('dpsoft-payments.PAYMOB_HMAC');
         $this->notificationUrl = config('dpsoft-payments.PAYMOB_NOTIFICATION_URL');
         $this->redirectionUrl = config('dpsoft-payments.PAYMOB_REDIRECTION_URL');
+
+        if (empty($this->redirectionUrl)) {
+            $this->redirectionUrl = route(config('dpsoft-payments.VERIFY_ROUTE_NAME', 'verify-payment'), ['payment' => 'paymob-wallet']);
+        }
     }
 
     /**
@@ -95,9 +100,17 @@ class PaymobWalletPayment extends BaseController implements PaymentInterface
         $orderId = $result['intention_order_id'] ?? $result['id'] ?? null;
 
         if (!$response->successful() || empty($result['client_secret'])) {
+            Log::error('Paymob wallet intention failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'payload' => $payload,
+            ]);
+
+            $errorDetail = $response->body() ?: ($result['message'] ?? 'Unknown error');
+
             return [
                 'payment_id' => $orderId,
-                'html' => '<p>Wallet payment intention creation failed: ' . ($result['message'] ?? 'Unknown error') . '</p>',
+                'html' => '<p>Wallet payment intention creation failed: ' . $errorDetail . '</p>',
                 'redirect_url' => ''
             ];
         }
