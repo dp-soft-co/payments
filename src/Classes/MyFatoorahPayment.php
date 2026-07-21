@@ -77,7 +77,6 @@ class MyFatoorahPayment extends BaseController implements PaymentInterface
                 'Reference' => (string) ($this->user_id ?? 0),
                 'Email' => $this->user_email ?? '',
                 'Name' => trim(($this->user_first_name ?? '') . ' ' . ($this->user_last_name ?? '')),
-                'Mobile' => $this->user_phone ?? '',
             ],
         ];
 
