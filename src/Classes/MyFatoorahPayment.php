@@ -3,6 +3,7 @@
 namespace Dpsoft\Payments\Classes;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Dpsoft\Payments\Interfaces\PaymentInterface;
 use Dpsoft\Payments\Classes\BaseController;
@@ -99,7 +100,7 @@ class MyFatoorahPayment extends BaseController implements PaymentInterface
             $session_id = $response_data['Data']['SessionId'];
             $encryption_key = $response_data['Data']['EncryptionKey'];
 
-            session(['myfatoorah_encryption_key_' . $payment_id => $encryption_key]);
+            Cache::put('myfatoorah_key_' . $payment_id, $encryption_key, now()->addMinutes(30));
 
             $verify_url = route($this->verify_route_name, ['payment' => 'myfatoorah']);
             $session_js_url = $this->getSessionJsUrl();
@@ -179,7 +180,8 @@ HTML;
         $payment_data = $request['paymentData'] ?? null;
 
         if ($payment_data && $payment_data !== 'FAILED') {
-            $encryption_key = session('myfatoorah_encryption_key_' . $payment_id);
+            $cacheKey = 'myfatoorah_key_' . $payment_id;
+            $encryption_key = Cache::get($cacheKey);
 
             if ($encryption_key) {
                 $decrypted = $this->decryptPaymentData($payment_data, $encryption_key);
@@ -188,7 +190,7 @@ HTML;
                     $result = json_decode($decrypted, true);
 
                     if (isset($result['Invoice']['Status']) && $result['Invoice']['Status'] === 'PAID') {
-                        session()->forget('myfatoorah_encryption_key_' . $payment_id);
+                        Cache::forget($cacheKey);
                         return [
                             'success' => true,
                             'payment_id' => $payment_id,
@@ -196,7 +198,7 @@ HTML;
                             'process_data' => $result
                         ];
                     } else {
-                        session()->forget('myfatoorah_encryption_key_' . $payment_id);
+                        Cache::forget($cacheKey);
                         return [
                             'success' => false,
                             'payment_id' => $payment_id,
