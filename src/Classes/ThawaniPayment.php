@@ -56,8 +56,8 @@ class ThawaniPayment extends BaseController implements PaymentInterface
                     "quantity" => 1
                 ],
             ],
-            "success_url" => route($this->verify_route_name, ['payment' => "thawani", 'payment_id' => $unique_id]),
-            "cancel_url" => route($this->verify_route_name, ['payment' => "thawani", 'payment_id' => $unique_id]),
+            "success_url" => route($this->verify_route_name, ['gateway' => "thawani", 'payment_id' => $unique_id]),
+            "cancel_url" => route($this->verify_route_name, ['gateway' => "thawani", 'payment_id' => $unique_id]),
             "metadata" => [
                 "customer" => $this->user_first_name.' '.$this->user_last_name,
                 "order_id" => $unique_id,

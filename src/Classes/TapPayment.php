@@ -78,8 +78,8 @@ class TapPayment extends BaseController implements PaymentInterface
                 ]
             ],
             "source" => ["id" => "src_all"],
-            "post" => ["url" => route($this->verify_route_name, ['payment' => "tap"])],
-            "redirect" => ["url" => route($this->verify_route_name, ['payment' => "tap"])]
+            "post" => ["url" => route($this->verify_route_name, ['gateway' => "tap"])],
+            "redirect" => ["url" => route($this->verify_route_name, ['gateway' => "tap"])]
         ])->json();
 
         return [

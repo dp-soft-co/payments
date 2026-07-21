@@ -58,9 +58,9 @@ class PayeerPayment extends BaseController implements PaymentInterface
             $m_desc
         ];
         $arParams = [
-            'success_url' => route($this->verify_route_name,['payment'=>'payeer']),
-            'fail_url' => route($this->verify_route_name,['payment'=>'payeer']),
-            'status_url' => route($this->verify_route_name,['payment'=>'payeer']),
+            'success_url' => route($this->verify_route_name,['gateway' =>'payeer']),
+            'fail_url' => route($this->verify_route_name,['gateway' =>'payeer']),
+            'status_url' => route($this->verify_route_name,['gateway' =>'payeer']),
         ];
         $key = md5($this->payeer_additional_api_key.$m_orderid);
         $m_params = urlencode(base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256,$key, json_encode($arParams), MCRYPT_MODE_ECB)));

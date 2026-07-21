@@ -70,8 +70,8 @@ class PayPalPayment extends BaseController implements PaymentInterface
                 ]
             ]],
             "application_context" => [
-                "cancel_url" => route($this->verify_route_name, ['payment' => "paypal"]),
-                "return_url" => route($this->verify_route_name, ['payment' => "paypal"])
+                "cancel_url" => route($this->verify_route_name, ['gateway' => "paypal"]),
+                "return_url" => route($this->verify_route_name, ['gateway' => "paypal"])
             ]
         ];
 

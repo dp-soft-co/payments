@@ -66,7 +66,7 @@ class KashierPayment extends BaseController implements PaymentInterface
             'amount' => (string) $this->amount,
             'currency' => $this->currency,
             'order' => $order_id,
-            'merchantRedirect' => route($this->verify_route_name, ['payment' => "kashier"]),
+            'merchantRedirect' => route($this->verify_route_name, ['gateway' => "kashier"]),
             'display' => 'ar',
             'type' => 'one-time',
             'allowedMethods' => $this->source ?? 'card,wallet',

@@ -52,7 +52,7 @@ class NowPaymentsPayment extends BaseController implements PaymentInterface
                 "price_amount"=> $this->amount,
                 "price_currency"=> "usd",
                 "pay_currency"=> $this->currency,
-                "ipn_callback_url"=> route($this->verify_route_name,['payment'=>"nowpayments"]),
+                "ipn_callback_url"=> route($this->verify_route_name,['gateway' =>"nowpayments"]),
                 "order_id"=> $order_id,
                 "order_description"=> "Credit"
         ])->json();

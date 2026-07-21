@@ -31,7 +31,7 @@ class PaymobPayment extends BaseController implements PaymentInterface
         $this->redirectionUrl = config('dpsoft-payments.PAYMOB_REDIRECTION_URL');
 
         if (empty($this->redirectionUrl)) {
-            $this->redirectionUrl = route(config('dpsoft-payments.VERIFY_ROUTE_NAME', 'verify-payment'), ['payment' => 'paymob']);
+            $this->redirectionUrl = route(config('dpsoft-payments.VERIFY_ROUTE_NAME', 'verify-payment'), ['gateway' => 'paymob']);
         }
 
         $this->currency = config('dpsoft-payments.PAYMOB_CURRENCY');

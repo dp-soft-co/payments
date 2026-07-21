@@ -119,7 +119,7 @@ return [
     
     /*
     *please 
-    *1- create POST route /payments/verify/{payment} and put it before your verify route 
+    *1- create POST route /payments/verify/{gateway} and put it before your verify route 
     *2- put it into app/Http/Middleware/VerifyCsrfToken.php middleware inside except array
     */
     'VERIFY_ROUTE_NAME' => "verify-payment",

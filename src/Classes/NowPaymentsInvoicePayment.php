@@ -46,9 +46,9 @@ class NowPaymentsInvoicePayment extends BaseController implements PaymentInterfa
                 "price_currency"=> $this->currency,
                 "order_id"=> $order_id,
                 "order_description"=> "Credit",
-                "ipn_callback_url"=> route($this->verify_route_name,['payment'=>"nowpaymentsinvoice"]),
-                "success_url"=>route($this->verify_route_name,['payment'=>"nowpaymentsinvoice"]),
-                "cancel_url"=>route($this->verify_route_name,['payment'=>"nowpaymentsinvoice"]),
+                "ipn_callback_url"=> route($this->verify_route_name,['gateway' =>"nowpaymentsinvoice"]),
+                "success_url"=>route($this->verify_route_name,['gateway' =>"nowpaymentsinvoice"]),
+                "cancel_url"=>route($this->verify_route_name,['gateway' =>"nowpaymentsinvoice"]),
         ])->json();
         if(isset($response['id']))
             return [

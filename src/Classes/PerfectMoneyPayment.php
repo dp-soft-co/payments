@@ -48,9 +48,9 @@ class PerfectMoneyPayment extends BaseController implements PaymentInterface
             'PAYMENT_AMOUNT' => $this->amount,
             'PAYMENT_ID' => $unique_id,
             'PAYMENT_UNITS' => $this->currency??"USD" ,
-            'STATUS_URL' => route($this->verify_route_name,['payment'=>"perfectmoney"]),
-            'PAYMENT_URL' => route($this->verify_route_name,['payment'=>"perfectmoney"]),
-            'NOPAYMENT_URL' => route($this->verify_route_name,['payment'=>"perfectmoney"]),
+            'STATUS_URL' => route($this->verify_route_name,['gateway' =>"perfectmoney"]),
+            'PAYMENT_URL' => route($this->verify_route_name,['gateway' =>"perfectmoney"]),
+            'NOPAYMENT_URL' => route($this->verify_route_name,['gateway' =>"perfectmoney"]),
             'MEMO'=>"CREDIT"
             // Additional form fields as needed
         ];

@@ -67,7 +67,7 @@ class MyFatoorahPayment extends BaseController implements PaymentInterface
 
         $payment_id = uniqid() . rand(100000, 999999);
 
-        $verify_url = route($this->verify_route_name, ['payment' => 'myfatoorah']);
+        $verify_url = route($this->verify_route_name, ['gateway' => 'myfatoorah']);
 
         $session_data = [
             'PaymentMode' => 'COMPLETE_PAYMENT',
