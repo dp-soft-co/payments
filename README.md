@@ -4,7 +4,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 [![Packagist](https://img.shields.io/badge/Composer-dp--soft--co/payments-blue)](https://packagist.org/packages/dp-soft-co/payments)
 
-Payment Helper for Laravel — supports PayPal, Paymob, Kashier, Fawry, HyperPay, Thawani, Tap, Opay, Paytabs, Binance, PerfectMoney, NowPayments, Payeer, Telr, Clickpay, MyFatoorah, and E-Wallets (Vodafone Cash, Orange Money, Meza Wallet, Etisalat Cash).
+Payment Helper for Laravel — supports PayPal, Paymob, Kashier, Fawry, HyperPay, Thawani, Tap, Opay, Paytabs, Binance, PerfectMoney, NowPayments, Payeer, Telr, Clickpay, MyFatoorah, Stripe, and E-Wallets (Vodafone Cash, Orange Money, Meza Wallet, Etisalat Cash).
 
 ![payment-gateways.jpg](https://github.com/dp-soft-co/payments/blob/master/payment-gateways.jpg?raw=true&v=6)
 
@@ -30,6 +30,7 @@ Payment Helper for Laravel — supports PayPal, Paymob, Kashier, Fawry, HyperPay
 - [Telr](https://telr.com)
 - [Clickpay](https://clickpay.com.sa/)
 - [MyFatoorah](https://myfatoorah.com/)
+- [Stripe](https://stripe.com/)
 - [E Wallets (Vodafone Cash - Orange Money - Meza Wallet - Etisalat Cash)](https://paymob.com/)
 
 ## Installation
@@ -80,6 +81,12 @@ return [
     'KASHIER_MODE' => env('KASHIER_MODE', "test"), //live or test
     'KASHIER_CURRENCY'=>env('KASHIER_CURRENCY',"EGP"),
     'KASHIER_WEBHOOK_URL'=>env('KASHIER_WEBHOOK_URL'),
+
+
+    #STRIPE
+    'STRIPE_SECRET_KEY' => env('STRIPE_SECRET_KEY'),
+    'STRIPE_PUBLISHABLE_KEY' => env('STRIPE_PUBLISHABLE_KEY'),
+    'STRIPE_CURRENCY' => env('STRIPE_CURRENCY', 'USD'),
 
 
     'VERIFY_ROUTE_NAME' => "verify-payment",

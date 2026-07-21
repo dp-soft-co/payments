@@ -116,6 +116,11 @@ return [
     'MYFATOORAH_COUNTRY'=>env('MYFATOORAH_COUNTRY',''),//eg,sa,ae,qa or empty for global
     'MYFATOORAH_CURRENCY'=>env('MYFATOORAH_CURRENCY','KWD'),
 
+    #STRIPE
+    'STRIPE_SECRET_KEY'=>env('STRIPE_SECRET_KEY'),
+    'STRIPE_PUBLISHABLE_KEY'=>env('STRIPE_PUBLISHABLE_KEY'),
+    'STRIPE_CURRENCY'=>env('STRIPE_CURRENCY','USD'),
+
     
     /*
     *please 
