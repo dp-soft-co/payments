@@ -80,6 +80,7 @@ class MyFatoorahPayment extends BaseController implements PaymentInterface
                 'Reference' => (string) ($this->user_id ?? 0),
                 'Email' => $this->user_email ?? '',
                 'Name' => trim(($this->user_first_name ?? '') . ' ' . ($this->user_last_name ?? '')),
+                'Mobile' => $this->user_phone ?? '',
             ],
             'IntegrationUrls' => [
                 'Redirection' => $verify_url . '?payment_id=' . $payment_id,
@@ -249,29 +250,48 @@ HTML;
 
         $session_id = $request['sessionId'] ?? null;
         if ($session_id) {
-            $status_response = Http::withHeaders([
+            $session_response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->myfatoorah_api_key,
                 'Content-Type' => 'application/json',
             ])->get($this->getApiBaseUrl() . '/v3/sessions/' . $session_id)->json();
 
-            $external_id = $status_response['Data']['Invoice']['ExternalIdentifier'] ?? $payment_id;
-            $status = $status_response['Data']['Invoice']['Status'] ?? null;
+            $myfatoorah_payment_id = $session_response['Data']['TransactionDetails']['PaymentId']
+                ?? $session_response['Data']['TransactionResult']['PaymentId']
+                ?? $session_response['Data']['PaymentId']
+                ?? null;
 
-            if ($status === 'PAID') {
-                return [
-                    'success' => true,
-                    'payment_id' => $external_id,
-                    'message' => __('dpsoft::messages.PAYMENT_DONE'),
-                    'process_data' => $status_response
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'payment_id' => $external_id,
-                    'message' => __('dpsoft::messages.PAYMENT_FAILED'),
-                    'process_data' => $status_response ?? $request->all()
-                ];
+            if ($myfatoorah_payment_id) {
+                $status_response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $this->myfatoorah_api_key,
+                    'Content-Type' => 'application/json',
+                ])->get($this->getApiBaseUrl() . '/v3/payments/' . $myfatoorah_payment_id)->json();
+
+                $external_id = $status_response['Data']['Invoice']['ExternalIdentifier'] ?? $payment_id;
+                $status = $status_response['Data']['Invoice']['Status'] ?? null;
+
+                if ($status === 'PAID') {
+                    return [
+                        'success' => true,
+                        'payment_id' => $external_id,
+                        'message' => __('dpsoft::messages.PAYMENT_DONE'),
+                        'process_data' => $status_response
+                    ];
+                } else {
+                    return [
+                        'success' => false,
+                        'payment_id' => $external_id,
+                        'message' => __('dpsoft::messages.PAYMENT_FAILED'),
+                        'process_data' => $status_response ?? $request->all()
+                    ];
+                }
             }
+
+            return [
+                'success' => false,
+                'payment_id' => $payment_id,
+                'message' => __('dpsoft::messages.PAYMENT_FAILED'),
+                'process_data' => $session_response ?? $request->all()
+            ];
         }
 
         return [
