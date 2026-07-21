@@ -1,16 +1,15 @@
 <?php
 return [
     #PAYMOB
-    'PAYMOB_SECRET_KEY' => env('PAYMOB_SECRET_KEY'),
-    'PAYMOB_PUBLIC_KEY' => env('PAYMOB_PUBLIC_KEY'),
     'PAYMOB_BASE_URL' => env('PAYMOB_BASE_URL', 'https://accept.paymob.com'),
-    'PAYMOB_INTEGRATION_ID' => env('PAYMOB_INTEGRATION_ID'),
+    'PAYMOB_PUBLIC_KEY' => env('PAYMOB_PUBLIC_KEY'),
+    'PAYMOB_SECRET_KEY' => env('PAYMOB_SECRET_KEY'),
     'PAYMOB_HMAC' => env('PAYMOB_HMAC'),
+    'PAYMOB_INTEGRATION_ID' => env('PAYMOB_INTEGRATION_ID'),
     'PAYMOB_CURRENCY'=> env('PAYMOB_CURRENCY',"EGP"),
-    'PAYMOB_NOTIFICATION_URL' => env('PAYMOB_NOTIFICATION_URL'),
-    'PAYMOB_REDIRECTION_URL' => env('PAYMOB_REDIRECTION_URL'),
-    'PAYMOB_CHECKOUT_MODE' => env('PAYMOB_CHECKOUT_MODE', 'redirect'),
-    'PAYMOB_PIXEL_PAYMENT_METHODS' => env('PAYMOB_PIXEL_PAYMENT_METHODS', 'card'),
+    'PAYMOB_NOTIFICATION_URL' => env('PAYMOB_NOTIFICATION_URL'), // webhook url
+    'PAYMOB_CHECKOUT_MODE' => env('PAYMOB_CHECKOUT_MODE', 'pixel'), // redirect, pixel
+    'PAYMOB_PIXEL_PAYMENT_METHODS' => env('PAYMOB_PIXEL_PAYMENT_METHODS', 'card'), // card, google-pay, apple-pay
 
     #HYPERPAY
     'HYPERPAY_BASE_URL' => env('HYPERPAY_BASE_URL', "https://eu-test.oppwa.com"),
@@ -95,16 +94,8 @@ return [
 
 
     #Perfectmoney
-    /*
-    *please 
-    *1- create POST route /payments/verify/{payment} and put it before your verify route 
-    *2- put it into app/Http/Middleware/VerifyCsrfToken.php middleware inside except array
-    */
     'PERFECT_MONEY_ID'=>env('PERFECT_MONEY_ID','UXXXXXXX'),
     'PERFECT_MONEY_PASSPHRASE'=>env('PERFECT_MONEY_PASSPHRASE'),
-
-    'VERIFY_ROUTE_NAME' => "verify-payment",
-    'APP_NAME'=>env('APP_NAME'),
 
 
 
@@ -124,4 +115,13 @@ return [
     'MYFATOORAH_MODE'=>env('MYFATOORAH_MODE','test'),//test or live
     'MYFATOORAH_COUNTRY'=>env('MYFATOORAH_COUNTRY',''),//eg,sa,ae,qa or empty for global
     'MYFATOORAH_CURRENCY'=>env('MYFATOORAH_CURRENCY','KWD'),
+
+    
+    /*
+    *please 
+    *1- create POST route /payments/verify/{payment} and put it before your verify route 
+    *2- put it into app/Http/Middleware/VerifyCsrfToken.php middleware inside except array
+    */
+    'VERIFY_ROUTE_NAME' => "verify-payment",
+    'APP_NAME'=>env('APP_NAME'),
 ];

@@ -82,173 +82,116 @@ return [
     'KASHIER_WEBHOOK_URL'=>env('KASHIER_WEBHOOK_URL'),
 
 
-    #FAWRY
-    'FAWRY_URL' => env('FAWRY_URL', "https://atfawry.fawrystaging.com/"),//https://www.atfawry.com/ for production
-    'FAWRY_SECRET' => env('FAWRY_SECRET'),
-    'FAWRY_MERCHANT' => env('FAWRY_MERCHANT'),
-
-
-    #PayPal
-    'PAYPAL_CLIENT_ID' => env('PAYPAL_CLIENT_ID'),
-    'PAYPAL_SECRET' => env('PAYPAL_SECRET'),
-    'PAYPAL_CURRENCY' => env('PAYPAL_CURRENCY', "USD"),
-    'PAYPAL_MODE' => env('PAYPAL_MODE',"sandbox"),//sandbox or live
-
-
-    #THAWANI
-    'THAWANI_API_KEY' => env('THAWANI_API_KEY', ''),
-    'THAWANI_URL' => env('THAWANI_URL', "https://uatcheckout.thawani.om/"),
-    'THAWANI_PUBLISHABLE_KEY' => env('THAWANI_PUBLISHABLE_KEY', ''),
-
-    #TAP
-    'TAP_CURRENCY' => env('TAP_CURRENCY',"USD"),
-    'TAP_SECRET_KEY'=>env('TAP_SECRET_KEY'),
-    'TAP_PUBLIC_KEY'=>env('TAP_PUBLIC_KEY'),
-    'TAP_LANG_KEY'=>env('TAP_LANG_KEY','ar'),
-
-
-    #OPAY
-    'OPAY_CURRENCY'=>env('OPAY_CURRENCY',"EGP"),
-    'OPAY_SECRET_KEY'=>env('OPAY_SECRET_KEY'),
-    'OPAY_PUBLIC_KEY'=>env('OPAY_PUBLIC_KEY'),
-    'OPAY_MERCHANT_ID'=>env('OPAY_MERCHANT_ID'),
-    'OPAY_COUNTRY_CODE'=>env('OPAY_COUNTRY_CODE',"EG"),
-    'OPAY_BASE_URL'=>env('OPAY_BASE_URL',"https://sandboxapi.opaycheckout.com"),//https://api.opaycheckout.com for production
-
-
-    #PAYMOB_WALLET (Vodafone-cash,orange-money,etisalat-cash,we-cash,meza-wallet) - test phone 01010101010 ,PIN & OTP IS 123456
-    'PAYMOB_WALLET_INTEGRATION_ID'=>env('PAYMOB_WALLET_INTEGRATION_ID'),
-
-    #Paytabs
-    'PAYTABS_PROFILE_ID'  => env('PAYTABS_PROFILE_ID'),
-    'PAYTABS_SERVER_KEY' =>  env('PAYTABS_SERVER_KEY'),
-    'PAYTABS_BASE_URL' =>   env('PAYTABS_BASE_URL',"https://secure-egypt.paytabs.com"),
-    'PAYTABS_CHECKOUT_LANG' => env('PAYTABS_CHECKOUT_LANG',"AR"),
-    'PAYTABS_CURRENCY'=>env('PAYTABS_CURRENCY',"EGP"),
-
-    
-    #Binance
-    'BINANCE_API'=>env('BINANCE_API'),
-    'BINANCE_SECRET'=>env('BINANCE_SECRET'),
-
-
-    #NowPayments
-    'NOWPAYMENTS_API_KEY'=>env('NOWPAYMENTS_API_KEY'),
-
-
-    #Payeer
-    'PAYEER_MERCHANT_ID'=>env('PAYEER_MERCHANT_ID'),
-    'PAYEER_API_KEY'=>env('PAYEER_API_KEY'),
-    'PAYEER_ADDITIONAL_API_KEY'=>env('PAYEER_ADDITIONAL_API_KEY'),
-
-
-    #Perfectmoney
-    /*
-    *please 
-    *1- create POST route /payments/verify/{payment} and put it before your verify route 
-    *2- put it into app/Http/Middleware/VerifyCsrfToken.php middleware inside except array
-    */
-    'PERFECT_MONEY_ID'=>env('PERFECT_MONEY_ID','UXXXXXXX'),
-    'PERFECT_MONEY_PASSPHRASE'=>env('PERFECT_MONEY_PASSPHRASE'),
-
-    #TELR
-    'TELR_MERCHANT_ID'=>env('TELR_MERCHANT_ID'),
-    'TELR_API_KEY'=>env('TELR_API_KEY'),
-    'TELR_MODE'=>env('TELR_MODE','test'),//test,live
-
-
-    #CLICKPAY
-    'CLICKPAY_SERVER_KEY'=>env('CLICKPAY_SERVER_KEY'),
-    'CLICKPAY_PROFILE_ID'=>env('CLICKPAY_PROFILE_ID'),
-
-
-    #MYFATOORAH
-    'MYFATOORAH_API_KEY'=>env('MYFATOORAH_API_KEY'),
-    'MYFATOORAH_MODE'=>env('MYFATOORAH_MODE','test'),//test or live
-    'MYFATOORAH_COUNTRY'=>env('MYFATOORAH_COUNTRY',''),//eg,sa,ae,qa or empty for global
-    'MYFATOORAH_CURRENCY'=>env('MYFATOORAH_CURRENCY','KWD'),
-
     'VERIFY_ROUTE_NAME' => "verify-payment",
     'APP_NAME'=>env('APP_NAME'),
     //and more config for another payment gateways
 ];
 ```
 
-## Web.php MUST Have Route with name “verify-payment”
-
-```php
-Route::get('/payments/verify/{payment?}',[FrontController::class,'payment_verify'])->name('verify-payment');
-```
-
 ## How To Use
 
-```jsx
-use Dpsoft\Payments\Classes\PaymobPayment;
+### Standard Controller Example
 
-$payment = new PaymobPayment();
+The following Laravel controller pattern works with every gateway supported by the package. Store the gateway class name used to create the invoice so the callback can use the same gateway. Replace `Invoice`, the payment view, and success/failure routes with your application equivalents.
 
-//pay function
-$payment->pay(
-	$amount, 
-	$user_id = null, 
-	$user_first_name = null, 
-	$user_last_name = null, 
-	$user_email = null, 
-	$user_phone = null, 
-	$source = null
-);
+```php
+use App\Models\Invoice;
+use DpsoftPayments;
+use Illuminate\Http\Request;
 
-//or use
-$payment->setUserId($id)
-        ->setUserFirstName($first_name)
-        ->setUserLastName($last_name)
-        ->setUserEmail($email)
-        ->setUserPhone($phone)
-        ->setCurrency($currency)
-        ->setAmount($amount)
+public function pay(Request $request)
+{
+    $data = $request->validate([
+        'gateway' => ['required', 'string'],
+        'amount' => ['required', 'numeric', 'min:0.01'],
+    ]);
+
+    $user = $request->user();
+    $gateway = $data['gateway'];
+    $source = match (strtolower($gateway)) {
+        'kashier' => 'card,bank_installments,wallet,fawry',
+        'hyperpay' => 'CREDIT',
+        default => null,
+    };
+
+    $response = DpsoftPayments::gateway($gateway)
+        ->setPaymentData([
+            'amount' => $data['amount'],
+            'user_id' => $user->id,
+            'user_first_name' => $user->firstname,
+            'user_last_name' => $user->lastname,
+            'user_email' => $user->email,
+            'user_phone' => $user->phone,
+            'source' => $source,
+        ])
         ->pay();
 
-//pay function response 
-[
-	'payment_id'=>"", // refrence code that should stored in your orders table
-	'redirect_url'=>"", // redirect url available for some payment gateways
-	'html'=>"" // rendered html available for some payment gateways
-]
+    if (empty($response['payment_id'])) {
+        abort(422, strip_tags($response['html'] ?? 'Payment creation failed.'));
+    }
 
-//verify function
-$payment->verify($request);
+    Invoice::create([
+        'user_id' => $user->id,
+        'amount' => $data['amount'],
+        'status' => 'pending',
+        'pid' => $response['payment_id'],
+        'gateway' => $gateway,
+    ]);
 
-//outputs
-[
-	'success'=>true,//or false
-    'payment_id'=>"PID",
-	'message'=>"Done Successfully",//message for client
-	'process_data'=>""//payment response
-]
+    if (!empty($response['redirect_url'])) {
+        return redirect()->away($response['redirect_url']);
+    }
 
+    if (!empty($response['html'])) {
+        return view('payments.pay', ['link' => $response['html']]);
+    }
+
+    abort(422, 'Invalid gateway response.');
+}
+
+public function verify(string $gateway, Request $request)
+{
+    $result = DpsoftPayments::gateway($gateway)->verify($request);
+
+    $invoice = Invoice::where('pid', $result['payment_id'] ?? null)
+        ->where('gateway', $gateway)
+        ->firstOrFail();
+
+    if ($result['success']) {
+        $invoice->update(['status' => 'paid']);
+
+        return redirect()->route('payments.success');
+    }
+
+    return redirect()->route('payments.failed');
+}
 ```
-### Factory Pattern Use
-you can pass only method name without payment key word like (Fawry,Paymob,Opay ...etc) 
-and the factory will return the payment instance for you , use it as you want ;)
+
+Render gateway HTML only when it comes directly from the package response:
+
+```blade
+{!! $link !!}
+```
+
+Register the verification route:
+
 ```php
-    $payment = new \Dpsoft\Payments\Factories\PaymentFactory();
-    $payment=$payment->get(string $paymentName)->pay(
-	$amount, 
-	$user_id = null, 
-	$user_first_name = null, 
-	$user_last_name = null, 
-	$user_email = null, 
-	$user_phone = null, 
-	$source = null
-);;
+Route::match(['get', 'post'], '/payments/verify/{gateway}', [PaymentController::class, 'verify'])
+    ->name('verify-payment');
 ```
-## What's different from nafezly/payments?
 
-- **Kashier**: Migrated from deprecated `checkout.js` to **Payment Sessions API** (`POST /v3/payment/sessions`)
-- **Kashier**: `brandColor` automatically reads `primary_color` from project settings (via `app('cached_data')` or DB fallback)
-- **Kashier**: `iframeBackgroundColor` support for iframe styling
-- Removed hardcoded test API keys from config for security
-- **MyFatoorah**: Added support for **Embedded Payment v3** (`POST /v3/sessions`) with AES-128-CBC payment data decryption and hosted payment method fallback via `GetPaymentStatus`
+Use the gateway class name when starting a payment, for example `Paymob`, `PaymobWallet`, `Kashier`, `Fawry`, or `MyFatoorah`.
+
+#### Gateway-specific `source` values
+
+The standard example assigns a fixed `source` value from the selected gateway. Change the values in the `match` expression to match the payment methods enabled in your merchant account.
+
+| Gateway | `source` values |
+| --- | --- |
+| `Kashier` | Comma-separated allowed methods, such as `card,wallet`, `card,bank_installments,wallet,fawry`, or another supported Kashier method list. If omitted, the gateway defaults to `card,wallet`. |
+| `HyperPay` | `CREDIT`, `MADA`, or `APPLE`. This is required to select the matching HyperPay entity ID and payment brand. |
+
+Most other gateways do not use `source`; passing `null` is valid.
 
 ## Some Test Cards
 

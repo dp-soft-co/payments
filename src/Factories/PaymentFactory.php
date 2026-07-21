@@ -23,12 +23,27 @@ class PaymentFactory
     public function get(string $name): PaymentInterface|Exception
     {
 
-        $className = 'Dpsoft\Payments\Classes\\' . $name . 'Payment';
+        $className = 'Dpsoft\Payments\Classes\\' . $this->normalizeGatewayName($name) . 'Payment';
 
         if (class_exists($className))
             return new $className();
 
         throw new \Exception("Invalid gateway");
+    }
+
+    private function normalizeGatewayName(string $name): string
+    {
+        $normalizedName = strtolower(str_replace(['-', '_', ' '], '', trim($name)));
+
+        return match ($normalizedName) {
+            'clickpay' => 'ClickPay',
+            'hyperpay' => 'HyperPay',
+            'myfatoorah' => 'MyFatoorah',
+            'paypal' => 'PayPal',
+            'paymobwallet' => 'PaymobWallet',
+            'perfectmoney' => 'PerfectMoney',
+            default => str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', trim($name)))),
+        };
     }
 
     /**
