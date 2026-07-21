@@ -96,7 +96,7 @@ The following Laravel controller pattern works with every gateway supported by t
 
 ```php
 use App\Models\Invoice;
-use DpsoftPayments;
+use Dpsoft\Payments\Facades\DpsoftPaymentsFacade as DpsoftPayments;
 use Illuminate\Http\Request;
 
 public function pay(Request $request)
