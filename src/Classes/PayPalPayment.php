@@ -2,36 +2,36 @@
 
 namespace Dpsoft\Payments\Classes;
 
-use Exception;
-use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Redirector;
 use Dpsoft\Payments\Interfaces\PaymentInterface;
-use PayPalCheckoutSdk\Core\PayPalHttpClient;
-use PayPalCheckoutSdk\Core\SandboxEnvironment;
-use PayPalCheckoutSdk\Core\ProductionEnvironment;
-use PayPalCheckoutSdk\Orders\OrdersCreateRequest;
-use PayPalCheckoutSdk\Orders\OrdersCaptureRequest;
-use PayPalCheckoutSdk\Orders\OrdersGetRequest;
+use PaypalServerSdkLib\Environment;
+use PaypalServerSdkLib\PaypalServerSdkClientBuilder;
+use PaypalServerSdkLib\Authentication\ClientCredentialsAuthCredentialsBuilder;
+use PaypalServerSdkLib\Models\Builders\OrderRequestBuilder;
+use PaypalServerSdkLib\Models\Builders\PurchaseUnitRequestBuilder;
+use PaypalServerSdkLib\Models\Builders\AmountWithBreakdownBuilder;
+use PaypalServerSdkLib\Models\Builders\PaymentSourceBuilder;
+use PaypalServerSdkLib\Models\Builders\PaypalWalletBuilder;
+use PaypalServerSdkLib\Models\Builders\PaypalWalletExperienceContextBuilder;
 use Dpsoft\Payments\Classes\BaseController;
 
 class PayPalPayment extends BaseController implements PaymentInterface
 {
     private $paypal_client_id;
     private $paypal_secret;
+    private $paypal_mode;
+    private $currency;
+    private $app_name;
     private $verify_route_name;
-    public $paypal_mode;
-    public $currency;
-
 
     public function __construct()
     {
         $this->paypal_client_id = config('dpsoft-payments.PAYPAL_CLIENT_ID');
         $this->paypal_secret = config('dpsoft-payments.PAYPAL_SECRET');
+        $this->paypal_mode = config('dpsoft-payments.PAYPAL_MODE', 'sandbox');
+        $this->currency = config('dpsoft-payments.PAYPAL_CURRENCY', 'USD');
+        $this->app_name = config('dpsoft-payments.APP_NAME');
         $this->verify_route_name = config('dpsoft-payments.VERIFY_ROUTE_NAME');
-        $this->paypal_mode = config('dpsoft-payments.PAYPAL_MODE');
-        $this->currency = config('dpsoft-payments.PAYPAL_CURRENCY');
     }
 
     /**
@@ -42,51 +42,101 @@ class PayPalPayment extends BaseController implements PaymentInterface
      * @param null $user_email
      * @param null $user_phone
      * @param null $source
-     * @return array|Application|RedirectResponse|Redirector
+     * @return array
      */
-    public function pay($amount = null, $user_id = null, $user_first_name = null, $user_last_name = null, $user_email = null, $user_phone = null, $source = null)
+    public function pay($amount = null, $user_id = null, $user_first_name = null, $user_last_name = null, $user_email = null, $user_phone = null, $source = null): array
     {
-        $this->setPassedVariablesToGlobal($amount,$user_id,$user_first_name,$user_last_name,$user_email,$user_phone,$source);
-        $required_fields = ['amount'];
-        $this->checkRequiredFields($required_fields, 'PayPal');
+        $this->setPassedVariablesToGlobal($amount, $user_id, $user_first_name, $user_last_name, $user_email, $user_phone, $source);
+        $this->checkRequiredFields(['amount'], 'PayPal');
 
-        if($this->paypal_mode=="live")
-            $environment = new ProductionEnvironment($this->paypal_client_id, $this->paypal_secret);
-        else
-            $environment = new SandboxEnvironment($this->paypal_client_id, $this->paypal_secret);
+        if (empty($this->paypal_client_id) || empty($this->paypal_secret)) {
+            throw new \Exception('PayPal client ID and secret are required.');
+        }
 
-        
-        $client = new PayPalHttpClient($environment);
+        $client = $this->getClient();
 
-        $request = new OrdersCreateRequest();
-        $request->prefer('return=representation');
-        $request->body = [
-            "intent" => "CAPTURE",
-            "purchase_units" => [[
-                "reference_id" => uniqid(),
-                "amount" => [
-                    "value" => $this->amount,
-                    "currency_code" => $this->currency
-                ]
-            ]],
-            "application_context" => [
-                "cancel_url" => route($this->verify_route_name, ['gateway' => "paypal"]),
-                "return_url" => route($this->verify_route_name, ['gateway' => "paypal"])
-            ]
-        ];
+        $referenceId = uniqid();
+        $verifyUrl = route($this->verify_route_name, ['gateway' => 'paypal']);
+        $amountValue = $this->formatPayPalAmount($this->amount, $this->currency);
+
+        $orderAmount = AmountWithBreakdownBuilder::init($this->currency, $amountValue)->build();
+        $purchaseUnit = PurchaseUnitRequestBuilder::init($orderAmount)
+            ->referenceId($referenceId)
+            ->description('Payment - ' . $this->app_name)
+            ->build();
+
+        $experienceContext = PaypalWalletExperienceContextBuilder::init()
+            ->returnUrl($verifyUrl)
+            ->cancelUrl($verifyUrl)
+            ->shippingPreference('NO_SHIPPING')
+            ->userAction('PAY_NOW')
+            ->brandName($this->app_name)
+            ->build();
+
+        $paypalWallet = PaypalWalletBuilder::init()
+            ->experienceContext($experienceContext)
+            ->build();
+
+        $paymentSource = PaymentSourceBuilder::init()
+            ->paypal($paypalWallet)
+            ->build();
+
+        $orderRequest = OrderRequestBuilder::init('CAPTURE', [$purchaseUnit])
+            ->paymentSource($paymentSource)
+            ->build();
 
         try {
-            $response = json_decode(json_encode($client->execute($request)), true);
+            $apiResponse = $client->getOrdersController()->createOrder([
+                'body' => $orderRequest,
+                'prefer' => 'return=representation',
+            ]);
+
+            if (!$apiResponse->isSuccess()) {
+                return [
+                    'payment_id' => $referenceId,
+                    'html' => '',
+                    'redirect_url' => '',
+                    'success' => false,
+                    'message' => __('dpsoft::messages.PAYMENT_FAILED'),
+                    'process_data' => $apiResponse->getBody(),
+                ];
+            }
+
+            $order = $apiResponse->getResult();
+            $orderId = $order->getId();
+
+            $approveUrl = null;
+            foreach ($order->getLinks() ?? [] as $link) {
+                if (in_array($link->getRel(), ['approve', 'payer-action'], true)) {
+                    $approveUrl = $link->getHref();
+                    break;
+                }
+            }
+
+            if (!$approveUrl) {
+                return [
+                    'payment_id' => $orderId ?? $referenceId,
+                    'html' => '',
+                    'redirect_url' => '',
+                    'success' => false,
+                    'message' => __('dpsoft::messages.PAYMENT_FAILED'),
+                    'process_data' => $order,
+                ];
+            }
+
             return [
-                'payment_id'=>$response['result']['id'],
-                'html' => "",
-                'redirect_url'=>collect($response['result']['links'])->where('rel', 'approve')->firstOrFail()['href']
+                'payment_id' => $orderId,
+                'html' => '',
+                'redirect_url' => $approveUrl,
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [
+                'payment_id' => $referenceId,
+                'html' => '',
+                'redirect_url' => '',
                 'success' => false,
                 'message' => __('dpsoft::messages.PAYMENT_FAILED'),
-                'process_data' => $e
+                'process_data' => ['error' => $e->getMessage()],
             ];
         }
     }
@@ -97,40 +147,87 @@ class PayPalPayment extends BaseController implements PaymentInterface
      */
     public function verify(Request $request): array
     {
+        $orderId = $request->input('token');
 
-        if($this->paypal_mode=="live")
-            $environment = new ProductionEnvironment($this->paypal_client_id, $this->paypal_secret);
-        else
-            $environment = new SandboxEnvironment($this->paypal_client_id, $this->paypal_secret);
-            
-        $client = new PayPalHttpClient($environment);
-
-        try {
-            $response = $client->execute(new OrdersCaptureRequest($request['token']) );
-            $result = json_decode(json_encode($response), true);
-            if ($result['result']['status'] == "COMPLETED" && $result['statusCode']==201) {
-                return [
-                    'success' => true,
-                    'payment_id'=>$request['token'],
-                    'message' => __('dpsoft::messages.PAYMENT_DONE'),
-                    'process_data' => $result
-                ];
-
-            } else {
-                return [
-                    'success' => false,
-                    'payment_id'=>$request['token'],
-                    'message' => __('dpsoft::messages.PAYMENT_FAILED'),
-                    'process_data' => $result
-                ];
-            }
-        } catch (Exception $e) {
+        if (empty($orderId) || empty($this->paypal_client_id) || empty($this->paypal_secret)) {
             return [
                 'success' => false,
-                'payment_id'=>$request['token'],
+                'payment_id' => $orderId,
                 'message' => __('dpsoft::messages.PAYMENT_FAILED'),
-                'process_data' => $e
+                'process_data' => $request->all(),
             ];
         }
+
+        try {
+            $client = $this->getClient();
+            $apiResponse = $client->getOrdersController()->captureOrder([
+                'id' => $orderId,
+                'prefer' => 'return=representation',
+            ]);
+
+            if (!$apiResponse->isSuccess()) {
+                return [
+                    'success' => false,
+                    'payment_id' => $orderId,
+                    'message' => __('dpsoft::messages.PAYMENT_FAILED'),
+                    'process_data' => $apiResponse->getBody() ?? $request->all(),
+                ];
+            }
+
+            $order = $apiResponse->getResult();
+
+            if ($order->getStatus() === 'COMPLETED') {
+                return [
+                    'success' => true,
+                    'payment_id' => $orderId,
+                    'message' => __('dpsoft::messages.PAYMENT_DONE'),
+                    'process_data' => $order,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'payment_id' => $orderId,
+                'message' => __('dpsoft::messages.PAYMENT_FAILED'),
+                'process_data' => $order,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'payment_id' => $orderId,
+                'message' => __('dpsoft::messages.PAYMENT_FAILED'),
+                'process_data' => ['error' => $e->getMessage()] + $request->all(),
+            ];
+        }
+    }
+
+    private function getClient()
+    {
+        return PaypalServerSdkClientBuilder::init()
+            ->clientCredentialsAuthCredentials(
+                ClientCredentialsAuthCredentialsBuilder::init(
+                    $this->paypal_client_id,
+                    $this->paypal_secret
+                )
+            )
+            ->environment($this->paypal_mode === 'live' ? Environment::PRODUCTION : Environment::SANDBOX)
+            ->build();
+    }
+
+    private function formatPayPalAmount(float $amount, string $currency): string
+    {
+        $currency = strtoupper($currency);
+        $zeroDecimal = ['BIF','CLP','DJF','GNF','JPY','KMF','KRW','MGA','PYG','RWF','UGX','VND','VUV','XAF','XOF','XPF','HUF','TWD'];
+        $threeDecimal = ['BHD','JOD','KWD','OMR','TND'];
+
+        if (in_array($currency, $zeroDecimal, true)) {
+            return (string) (int) round($amount);
+        }
+
+        if (in_array($currency, $threeDecimal, true)) {
+            return number_format($amount, 3, '.', '');
+        }
+
+        return number_format($amount, 2, '.', '');
     }
 }

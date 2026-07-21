@@ -17,9 +17,9 @@
     }
   },
   "require": {
-    "php": ">=7.0",
+    "php": ">=7.2",
     "laravel/framework": ">=6.0",
-    "paypal/paypal-checkout-sdk": "1.0.2",
+    "paypal/paypal-server-sdk": "^2.3",
     "ext-json": "*",
     "ext-curl": "*"
   },
