@@ -180,6 +180,26 @@ Route::match(['get', 'post'], '/payments/verify/{gateway}', [PaymentController::
     ->name('verify-payment');
 ```
 
+### CSRF Protection
+
+Payment gateways send POST callbacks from an iframe or external page and will not include the Laravel CSRF token. You must exclude the verification route from CSRF validation:
+
+- **Laravel 11** (`bootstrap/app.php`):
+  ```php
+  $middleware->validateCsrfTokens(except: [
+      '*payment/verify*',
+  ]);
+  ```
+
+- **Laravel 10** (`app/Http/Middleware/VerifyCsrfToken.php`):
+  ```php
+  protected $except = [
+      '*payment/verify*',
+  ];
+  ```
+
+Adjust the wildcard to match your actual route path and any language prefix (e.g. `*payments/verify*`).
+
 Use the gateway class name when starting a payment, for example `Paymob`, `PaymobWallet`, `Kashier`, `Fawry`, or `MyFatoorah`.
 
 #### Gateway-specific `source` values
