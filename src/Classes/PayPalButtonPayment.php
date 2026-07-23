@@ -71,13 +71,14 @@ class PayPalButtonPayment extends BaseController implements PaymentInterface
             ]);
 
             if (!$apiResponse->isSuccess()) {
+                [$errorMessage, $processData] = $this->parseApiError($apiResponse);
                 return [
                     'payment_id' => $referenceId,
                     'html' => '<p>PayPal order creation failed.</p>',
                     'redirect_url' => '',
                     'success' => false,
-                    'message' => __('dpsoft::messages.PAYMENT_FAILED'),
-                    'process_data' => $apiResponse->getBody(),
+                    'message' => __('dpsoft::messages.PAYMENT_FAILED') . ($errorMessage ? ': ' . $errorMessage : ''),
+                    'process_data' => $processData,
                 ];
             }
 
@@ -163,11 +164,12 @@ HTML;
             ]);
 
             if (!$apiResponse->isSuccess()) {
+                [$errorMessage, $processData] = $this->parseApiError($apiResponse);
                 return [
                     'success' => false,
                     'payment_id' => $orderId,
-                    'message' => __('dpsoft::messages.PAYMENT_FAILED'),
-                    'process_data' => $apiResponse->getBody() ?? $request->all(),
+                    'message' => __('dpsoft::messages.PAYMENT_FAILED') . ($errorMessage ? ': ' . $errorMessage : ''),
+                    'process_data' => $processData,
                 ];
             }
 
@@ -299,6 +301,31 @@ HTML;
             'message' => __('dpsoft::messages.PAYMENT_FAILED'),
             'process_data' => $processData,
         ];
+    }
+
+    private function parseApiError($apiResponse): array
+    {
+        $body = $apiResponse->getBody();
+        $data = is_string($body) ? json_decode($body, true) : $body;
+        if (!is_array($data)) {
+            $data = ['raw' => $body];
+        }
+
+        $messages = [];
+        foreach ($data['details'] ?? [] as $detail) {
+            if (!empty($detail['description'])) {
+                $messages[] = $detail['description'];
+            } elseif (!empty($detail['issue'])) {
+                $messages[] = $detail['issue'];
+            }
+        }
+
+        $message = $data['message'] ?? '';
+        if ($messages) {
+            $message = ($message ? $message . ': ' : '') . implode(', ', $messages);
+        }
+
+        return [$message ?: 'PayPal error', $data];
     }
 
     private function getClient()
