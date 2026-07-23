@@ -23,6 +23,7 @@ class FawaterkPayment extends BaseController implements PaymentInterface
     public $fawaterk_iframe_js_url;
     public $fawaterk_iframe_listing;
     public $fawaterk_iframe_redirect_out;
+    public $fawaterk_oauth_scope;
     public $verify_route_name;
     public $app_name;
 
@@ -41,6 +42,7 @@ class FawaterkPayment extends BaseController implements PaymentInterface
         $this->fawaterk_iframe_js_url = config('dpsoft-payments.FAWATERK_IFRAME_JS_URL', 'https://app.fawaterk.com/fawaterkPlugin/fawaterkPlugin.min.js');
         $this->fawaterk_iframe_listing = config('dpsoft-payments.FAWATERK_IFRAME_LISTING', 'horizontal');
         $this->fawaterk_iframe_redirect_out = filter_var(config('dpsoft-payments.FAWATERK_IFRAME_REDIRECT_OUT', true), FILTER_VALIDATE_BOOLEAN);
+        $this->fawaterk_oauth_scope = config('dpsoft-payments.FAWATERK_OAUTH_SCOPE', '');
         $this->verify_route_name = config('dpsoft-payments.VERIFY_ROUTE_NAME');
         $this->app_name = config('dpsoft-payments.APP_NAME');
     }
@@ -73,16 +75,21 @@ class FawaterkPayment extends BaseController implements PaymentInterface
             return $cached;
         }
 
-        $response = Http::asForm()->acceptJson()->post($this->fawaterk_base_url . '/oauth/token', [
-            'grant_type' => 'client_credentials',
-            'client_id' => $this->fawaterk_client_id,
-            'client_secret' => $this->fawaterk_client_secret,
-            'scope' => '',
-        ]);
+        $payload = ['grant_type' => 'client_credentials'];
+        if (!empty($this->fawaterk_oauth_scope)) {
+            $payload['scope'] = $this->fawaterk_oauth_scope;
+        }
+
+        $response = Http::withBasicAuth($this->fawaterk_client_id, $this->fawaterk_client_secret)
+            ->asForm()
+            ->acceptJson()
+            ->post($this->fawaterk_base_url . '/oauth/token', $payload);
 
         $data = $response->json();
         if (!$response->successful() || empty($data['access_token'])) {
-            throw new \RuntimeException('Failed to obtain Fawaterk access token: ' . ($data['message'] ?? $response->body()));
+            $error = $data['error'] ?? 'unknown';
+            $description = $data['error_description'] ?? $data['message'] ?? $response->body();
+            throw new \RuntimeException("Failed to obtain Fawaterk access token: [{$error}] {$description}");
         }
 
         $expiresIn = max(60, ($data['expires_in'] ?? 3600) - 60);

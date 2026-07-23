@@ -52,6 +52,7 @@ return [
     'FAWATERK_IFRAME_JS_URL' => env('FAWATERK_IFRAME_JS_URL', 'https://app.fawaterk.com/fawaterkPlugin/fawaterkPlugin.min.js'),
     'FAWATERK_IFRAME_LISTING' => env('FAWATERK_IFRAME_LISTING', 'horizontal'), // horizontal or vertical
     'FAWATERK_IFRAME_REDIRECT_OUT' => env('FAWATERK_IFRAME_REDIRECT_OUT', true), // redirect out of iframe after payment
+    'FAWATERK_OAUTH_SCOPE' => env('FAWATERK_OAUTH_SCOPE', ''), // OAuth scope if required by the client
 
     #PayPal
     'PAYPAL_CLIENT_ID' => env('PAYPAL_CLIENT_ID'),
