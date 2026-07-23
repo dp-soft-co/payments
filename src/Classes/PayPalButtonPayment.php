@@ -98,8 +98,11 @@ class PayPalButtonPayment extends BaseController implements PaymentInterface
             $amountValueJson = json_encode($amountValue, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
 
             $html = <<<HTML
-<div id="paypal-button-container-{$referenceId}" style="text-align:center; max-width:350px; margin:0 auto;">
+<div id="paypal-button-container-{$referenceId}" style="text-align:center; max-width:350px; margin:0 auto; display:flex; flex-direction:column; gap:10px;">
     <paypal-button type="pay" class="paypal-gold" style="width:100%; --paypal-button-border-radius:8px;"></paypal-button>
+    <paypal-basic-card-container style="width:100%;">
+        <paypal-basic-card-button id="paypal-basic-card-button-{$referenceId}" style="width:100%;"></paypal-basic-card-button>
+    </paypal-basic-card-container>
 </div>
 <script src="{$scriptBaseUrl}/web-sdk/v6/core"></script>
 <script>
@@ -111,6 +114,7 @@ class PayPalButtonPayment extends BaseController implements PaymentInterface
         var currency = {$currencyJson};
         var amount = {$amountValueJson};
         var containerId = 'paypal-button-container-{$referenceId}';
+        var cardButtonId = 'paypal-basic-card-button-{$referenceId}';
 
         function initPayPal() {
             if (typeof window.paypal === 'undefined') {
@@ -120,7 +124,7 @@ class PayPalButtonPayment extends BaseController implements PaymentInterface
 
             window.paypal.createInstance({
                 clientId: clientId,
-                components: ['paypal-payments'],
+                components: ['paypal-payments', 'paypal-guest-payments'],
                 pageType: 'checkout',
             }).then(function (sdkInstance) {
                 return sdkInstance.findEligibleMethods({
@@ -134,29 +138,61 @@ class PayPalButtonPayment extends BaseController implements PaymentInterface
                 var paymentMethods = result.paymentMethods;
                 var container = document.getElementById(containerId);
 
-                if (!paymentMethods.isEligible('paypal')) {
-                    container.innerHTML = '<p>PayPal is not available for this transaction.</p>';
+                var isPayPalEligible = paymentMethods.isEligible('paypal');
+                var isCardEligible = paymentMethods.isEligible('card');
+
+                if (!isPayPalEligible && !isCardEligible) {
+                    container.innerHTML = '<p>PayPal and card payments are not available for this transaction.</p>';
                     return;
                 }
 
-                var session = sdkInstance.createPayPalOneTimePaymentSession({
-                    onApprove: function (data) {
-                        var separator = verifyUrl.indexOf('?') === -1 ? '?' : '&';
-                        window.location.href = verifyUrl + separator + 'token=' + encodeURIComponent(data.orderId);
-                    },
-                    onCancel: function (data) {
-                        console.log('PayPal payment cancelled', data);
-                    },
-                    onError: function (error) {
-                        console.error('PayPal payment error', error);
-                    },
-                });
+                function onApprove(data) {
+                    var separator = verifyUrl.indexOf('?') === -1 ? '?' : '&';
+                    window.location.href = verifyUrl + separator + 'token=' + encodeURIComponent(data.orderId);
+                }
 
-                var button = container.querySelector('paypal-button');
-                if (button) {
-                    button.addEventListener('click', function () {
-                        session.start({ presentationMode: 'auto' }, Promise.resolve(orderData));
+                if (isPayPalEligible) {
+                    var payPalSession = sdkInstance.createPayPalOneTimePaymentSession({
+                        onApprove: onApprove,
+                        onCancel: function (data) {
+                            console.log('PayPal payment cancelled', data);
+                        },
+                        onError: function (error) {
+                            console.error('PayPal payment error', error);
+                        },
                     });
+
+                    var payPalButton = container.querySelector('paypal-button');
+                    if (payPalButton) {
+                        payPalButton.addEventListener('click', function () {
+                            payPalSession.start({ presentationMode: 'auto' }, Promise.resolve(orderData));
+                        });
+                    }
+                }
+
+                if (isCardEligible) {
+                    var cardSession = sdkInstance.createPayPalGuestOneTimePaymentSession({
+                        onApprove: onApprove,
+                        onComplete: function (data) {
+                            console.log('Card payment complete', data);
+                        },
+                        onCancel: function (data) {
+                            console.log('Card payment cancelled', data);
+                        },
+                        onError: function (error) {
+                            console.error('Card payment error', error);
+                        },
+                        onWarn: function (data) {
+                            console.warn('Card payment warning', data);
+                        },
+                    });
+
+                    var cardButton = document.getElementById(cardButtonId);
+                    if (cardButton) {
+                        cardButton.addEventListener('click', function () {
+                            cardSession.start({ presentationMode: 'auto' }, Promise.resolve(orderData));
+                        });
+                    }
                 }
             }).catch(function (error) {
                 console.error('PayPal v6 initialization error', error);
