@@ -39,12 +39,14 @@ return [
     'FAWRY_PAY_MODE'=>env('FAWRY_PAY_MODE',"CARD"),//allowed values ['CashOnDelivery', 'PayAtFawry', 'MWALLET', 'CARD' , 'VALU']
 
     #FAWATERK
-    'FAWATERK_API_KEY' => env('FAWATERK_API_KEY'),
+    'FAWATERK_CLIENT_ID' => env('FAWATERK_CLIENT_ID'),              // OAuth Client ID from Integration → OAuth clients
+    'FAWATERK_CLIENT_SECRET' => env('FAWATERK_CLIENT_SECRET'),        // OAuth Client secret
+    'FAWATERK_API_KEY' => env('FAWATERK_API_KEY'),                    // Legacy API key (fallback if OAuth not used)
     'FAWATERK_BASE_URL' => env('FAWATERK_BASE_URL', 'https://staging.fawaterk.com'),
     'FAWATERK_MODE' => env('FAWATERK_MODE', 'test'), // test or live
     'FAWATERK_CURRENCY' => env('FAWATERK_CURRENCY', 'EGP'),
     'FAWATERK_PAYMENT_METHOD_ID' => env('FAWATERK_PAYMENT_METHOD_ID', 2), // 2 = Visa-Mastercard
-    'FAWATERK_WEBHOOK_SECRET' => env('FAWATERK_WEBHOOK_SECRET'),
+    'FAWATERK_WEBHOOK_SECRET' => env('FAWATERK_WEBHOOK_SECRET'),      // HASH API key used to verify webhook hashKey
 
     #PayPal
     'PAYPAL_CLIENT_ID' => env('PAYPAL_CLIENT_ID'),

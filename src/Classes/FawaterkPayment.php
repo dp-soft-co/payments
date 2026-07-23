@@ -3,6 +3,7 @@
 namespace Dpsoft\Payments\Classes;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Dpsoft\Payments\Interfaces\PaymentInterface;
 use Dpsoft\Payments\Classes\BaseController;
@@ -10,6 +11,8 @@ use Dpsoft\Payments\Classes\BaseController;
 class FawaterkPayment extends BaseController implements PaymentInterface
 {
     public $fawaterk_api_key;
+    public $fawaterk_client_id;
+    public $fawaterk_client_secret;
     public $fawaterk_base_url;
     public $fawaterk_mode;
     public $fawaterk_currency;
@@ -21,6 +24,8 @@ class FawaterkPayment extends BaseController implements PaymentInterface
     public function __construct()
     {
         $this->fawaterk_api_key = config('dpsoft-payments.FAWATERK_API_KEY');
+        $this->fawaterk_client_id = config('dpsoft-payments.FAWATERK_CLIENT_ID');
+        $this->fawaterk_client_secret = config('dpsoft-payments.FAWATERK_CLIENT_SECRET');
         $this->fawaterk_mode = config('dpsoft-payments.FAWATERK_MODE', 'test');
         $this->fawaterk_base_url = config('dpsoft-payments.FAWATERK_BASE_URL') ?: $this->getDefaultBaseUrl();
         $this->fawaterk_currency = config('dpsoft-payments.FAWATERK_CURRENCY', 'EGP');
@@ -33,6 +38,55 @@ class FawaterkPayment extends BaseController implements PaymentInterface
     private function getDefaultBaseUrl(): string
     {
         return $this->fawaterk_mode === 'live' ? 'https://app.fawaterk.com' : 'https://staging.fawaterk.com';
+    }
+
+    /**
+     * Obtain a Fawaterk access token via OAuth 2.0 client credentials,
+     * or fall back to the legacy API key if configured.
+     *
+     * @return string
+     * @throws \RuntimeException
+     */
+    private function getAccessToken(): string
+    {
+        if (!empty($this->fawaterk_api_key)) {
+            return $this->fawaterk_api_key;
+        }
+
+        if (empty($this->fawaterk_client_id) || empty($this->fawaterk_client_secret)) {
+            throw new \RuntimeException('Fawaterk credentials are not configured. Set FAWATERK_CLIENT_ID and FAWATERK_CLIENT_SECRET (or FAWATERK_API_KEY as legacy fallback).');
+        }
+
+        $cacheKey = 'fawaterk_access_token_' . md5($this->fawaterk_client_id . $this->fawaterk_base_url);
+        $cached = Cache::get($cacheKey);
+        if ($cached) {
+            return $cached;
+        }
+
+        $response = Http::asForm()->acceptJson()->post($this->fawaterk_base_url . '/oauth/token', [
+            'grant_type' => 'client_credentials',
+            'client_id' => $this->fawaterk_client_id,
+            'client_secret' => $this->fawaterk_client_secret,
+            'scope' => '',
+        ]);
+
+        $data = $response->json();
+        if (!$response->successful() || empty($data['access_token'])) {
+            throw new \RuntimeException('Failed to obtain Fawaterk access token: ' . ($data['message'] ?? $response->body()));
+        }
+
+        $expiresIn = max(60, ($data['expires_in'] ?? 3600) - 60);
+        Cache::put($cacheKey, $data['access_token'], now()->addSeconds($expiresIn));
+
+        return $data['access_token'];
+    }
+
+    private function getAuthHeaders(): array
+    {
+        return [
+            'Authorization' => 'Bearer ' . $this->getAccessToken(),
+            'Content-Type' => 'application/json',
+        ];
     }
 
     /**
@@ -89,10 +143,7 @@ class FawaterkPayment extends BaseController implements PaymentInterface
         ];
 
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->fawaterk_api_key,
-                'Content-Type' => 'application/json',
-            ])->post($this->fawaterk_base_url . '/api/v2/createInvoiceLink', $payload);
+            $response = Http::withHeaders($this->getAuthHeaders())->post($this->fawaterk_base_url . '/api/v2/createInvoiceLink', $payload);
 
             $responseData = $response->json();
 
@@ -152,10 +203,7 @@ class FawaterkPayment extends BaseController implements PaymentInterface
         }
 
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->fawaterk_api_key,
-                'Content-Type' => 'application/json',
-            ])->get($this->fawaterk_base_url . '/api/v2/getInvoiceData/' . $invoiceId);
+            $response = Http::withHeaders($this->getAuthHeaders())->get($this->fawaterk_base_url . '/api/v2/getInvoiceData/' . $invoiceId);
 
             $responseData = $response->json();
 
