@@ -40,6 +40,8 @@ class PaymentFactory
             'hyperpay' => 'HyperPay',
             'myfatoorah' => 'MyFatoorah',
             'paypal' => 'PayPal',
+            'paypalbutton' => 'PayPalButton',
+            'paypalbuttons' => 'PayPalButton',
             'paymobwallet' => 'PaymobWallet',
             'perfectmoney' => 'PerfectMoney',
             default => str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', trim($name)))),
