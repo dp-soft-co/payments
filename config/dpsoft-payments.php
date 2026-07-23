@@ -38,6 +38,14 @@ return [
     'FAWRY_DISPLAY_MODE' => env('FAWRY_DISPLAY_MODE',"POPUP"),//required allowed values [POPUP, INSIDE_PAGE, SIDE_PAGE , SEPARATED]
     'FAWRY_PAY_MODE'=>env('FAWRY_PAY_MODE',"CARD"),//allowed values ['CashOnDelivery', 'PayAtFawry', 'MWALLET', 'CARD' , 'VALU']
 
+    #FAWATERK
+    'FAWATERK_API_KEY' => env('FAWATERK_API_KEY'),
+    'FAWATERK_BASE_URL' => env('FAWATERK_BASE_URL', 'https://staging.fawaterk.com'),
+    'FAWATERK_MODE' => env('FAWATERK_MODE', 'test'), // test or live
+    'FAWATERK_CURRENCY' => env('FAWATERK_CURRENCY', 'EGP'),
+    'FAWATERK_PAYMENT_METHOD_ID' => env('FAWATERK_PAYMENT_METHOD_ID', 2), // 2 = Visa-Mastercard
+    'FAWATERK_WEBHOOK_SECRET' => env('FAWATERK_WEBHOOK_SECRET'),
+
     #PayPal
     'PAYPAL_CLIENT_ID' => env('PAYPAL_CLIENT_ID'),
     'PAYPAL_SECRET' => env('PAYPAL_SECRET'),

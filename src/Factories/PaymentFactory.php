@@ -44,6 +44,8 @@ class PaymentFactory
             'paypalbuttons' => 'PayPalButton',
             'paymobwallet' => 'PaymobWallet',
             'perfectmoney' => 'PerfectMoney',
+            'fawaterk' => 'Fawaterk',
+            'fawaterak' => 'Fawaterk',
             default => str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', trim($name)))),
         };
     }
