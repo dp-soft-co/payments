@@ -179,9 +179,13 @@ class FawaterkPayment extends BaseController implements PaymentInterface
             $responseData = $response->json();
 
             if (!$response->successful() || ($responseData['status'] ?? '') !== 'success' || empty($responseData['data']['url'])) {
+                $message = $responseData['message'] ?? $response->body();
+                if (is_array($message)) {
+                    $message = json_encode($message, JSON_UNESCAPED_UNICODE);
+                }
                 return [
                     'payment_id' => $localReference,
-                    'html' => '<p>Fawaterk payment creation failed: ' . e($responseData['message'] ?? $response->body()) . '</p>',
+                    'html' => '<p>Fawaterk payment creation failed: ' . e($message) . '</p>',
                     'redirect_url' => '',
                     'success' => false,
                     'message' => __('dpsoft::messages.PAYMENT_FAILED'),
