@@ -13,6 +13,8 @@ use PaypalServerSdkLib\Models\Builders\AmountWithBreakdownBuilder;
 use PaypalServerSdkLib\Models\Builders\PaymentSourceBuilder;
 use PaypalServerSdkLib\Models\Builders\PaypalWalletBuilder;
 use PaypalServerSdkLib\Models\Builders\PaypalWalletExperienceContextBuilder;
+use PaypalServerSdkLib\Models\CaptureStatus;
+use PaypalServerSdkLib\Models\OrderStatus;
 use Dpsoft\Payments\Classes\BaseController;
 
 class PayPalPayment extends BaseController implements PaymentInterface
@@ -174,23 +176,7 @@ class PayPalPayment extends BaseController implements PaymentInterface
                 ];
             }
 
-            $order = $apiResponse->getResult();
-
-            if ($order->getStatus() === 'COMPLETED') {
-                return [
-                    'success' => true,
-                    'payment_id' => $orderId,
-                    'message' => __('dpsoft::messages.PAYMENT_DONE'),
-                    'process_data' => $order,
-                ];
-            }
-
-            return [
-                'success' => false,
-                'payment_id' => $orderId,
-                'message' => __('dpsoft::messages.PAYMENT_FAILED'),
-                'process_data' => $order,
-            ];
+            return $this->parseOrderCaptureResult($apiResponse->getResult(), $orderId);
         } catch (\Exception $e) {
             return [
                 'success' => false,
@@ -199,6 +185,125 @@ class PayPalPayment extends BaseController implements PaymentInterface
                 'process_data' => ['error' => $e->getMessage()] + $request->all(),
             ];
         }
+    }
+
+    private function parseOrderCaptureResult($order, string $orderId): array
+    {
+        $orderStatus = $order->getStatus();
+        $captureStatuses = [];
+        $payerActionUrl = '';
+
+        $purchaseUnits = $order->getPurchaseUnits() ?? [];
+        foreach ($purchaseUnits as $purchaseUnit) {
+            $payments = $purchaseUnit->getPayments();
+            if (!$payments) {
+                continue;
+            }
+            foreach ($payments->getCaptures() ?? [] as $capture) {
+                $reason = null;
+                $statusDetails = $capture->getStatusDetails();
+                if ($statusDetails) {
+                    $reason = $statusDetails->getReason();
+                }
+                $processorResponse = $capture->getProcessorResponse();
+                $captureStatuses[] = [
+                    'id' => $capture->getId(),
+                    'status' => $capture->getStatus(),
+                    'reason' => $reason,
+                    'processor_response_code' => $processorResponse ? $processorResponse->getResponseCode() : null,
+                ];
+            }
+        }
+
+        foreach ($order->getLinks() ?? [] as $link) {
+            if ($link->getRel() === 'payer-action') {
+                $payerActionUrl = $link->getHref();
+                break;
+            }
+        }
+
+        $processData = [
+            'order_id' => $orderId,
+            'order_status' => $orderStatus,
+            'capture_statuses' => $captureStatuses,
+            'payer_action_url' => $payerActionUrl,
+            'order' => $order,
+        ];
+
+        if ($orderStatus === OrderStatus::PAYER_ACTION_REQUIRED && $payerActionUrl) {
+            return [
+                'success' => false,
+                'payment_id' => $orderId,
+                'message' => __('dpsoft::messages.PAYMENT_FAILED') . ': payer action required',
+                'redirect_url' => $payerActionUrl,
+                'process_data' => $processData,
+            ];
+        }
+
+        if ($orderStatus !== OrderStatus::COMPLETED) {
+            return [
+                'success' => false,
+                'payment_id' => $orderId,
+                'message' => __('dpsoft::messages.PAYMENT_FAILED') . ': order status ' . $orderStatus,
+                'process_data' => $processData,
+            ];
+        }
+
+        $completedCount = 0;
+        $declinedCount = 0;
+        $pendingCount = 0;
+        $declineReasons = [];
+
+        foreach ($captureStatuses as $capture) {
+            switch ($capture['status']) {
+                case CaptureStatus::COMPLETED:
+                    $completedCount++;
+                    break;
+                case CaptureStatus::DECLINED:
+                    $declinedCount++;
+                    if ($capture['reason']) {
+                        $declineReasons[] = $capture['reason'];
+                    }
+                    break;
+                case CaptureStatus::PENDING:
+                    $pendingCount++;
+                    break;
+            }
+        }
+
+        if ($completedCount > 0) {
+            return [
+                'success' => true,
+                'payment_id' => $orderId,
+                'message' => __('dpsoft::messages.PAYMENT_DONE'),
+                'process_data' => $processData,
+            ];
+        }
+
+        if ($declinedCount > 0) {
+            return [
+                'success' => false,
+                'payment_id' => $orderId,
+                'message' => __('dpsoft::messages.PAYMENT_FAILED') . ': ' . (implode(', ', $declineReasons) ?: 'payment declined'),
+                'process_data' => $processData,
+            ];
+        }
+
+        if ($pendingCount > 0) {
+            return [
+                'success' => false,
+                'payment_id' => $orderId,
+                'message' => __('dpsoft::messages.PAYMENT_FAILED') . ': payment pending',
+                'process_data' => $processData,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'payment_id' => $orderId,
+            'message' => __('dpsoft::messages.PAYMENT_FAILED'),
+            'process_data' => $processData,
+        ];
     }
 
     private function getClient()
