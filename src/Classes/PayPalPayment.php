@@ -20,7 +20,7 @@ class PayPalPayment extends BaseController implements PaymentInterface
     private $paypal_client_id;
     private $paypal_secret;
     private $paypal_mode;
-    private $currency;
+    public $currency;
     private $app_name;
     private $verify_route_name;
 
@@ -36,12 +36,12 @@ class PayPalPayment extends BaseController implements PaymentInterface
 
     /**
      * @param $amount
-     * @param null $user_id
-     * @param null $user_first_name
-     * @param null $user_last_name
-     * @param null $user_email
-     * @param null $user_phone
-     * @param null $source
+     * @param mixed $user_id
+     * @param mixed $user_first_name
+     * @param mixed $user_last_name
+     * @param mixed $user_email
+     * @param mixed $user_phone
+     * @param mixed $source
      * @return array
      */
     public function pay($amount = null, $user_id = null, $user_first_name = null, $user_last_name = null, $user_email = null, $user_phone = null, $source = null): array
