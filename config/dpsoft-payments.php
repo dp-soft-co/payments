@@ -46,7 +46,12 @@ return [
     'FAWATERK_MODE' => env('FAWATERK_MODE', 'test'), // test or live
     'FAWATERK_CURRENCY' => env('FAWATERK_CURRENCY', 'EGP'),
     'FAWATERK_PAYMENT_METHOD_ID' => env('FAWATERK_PAYMENT_METHOD_ID', 2), // 2 = Visa-Mastercard
-    'FAWATERK_WEBHOOK_SECRET' => env('FAWATERK_WEBHOOK_SECRET'),      // HASH API key used to verify webhook hashKey
+    'FAWATERK_WEBHOOK_SECRET' => env('FAWATERK_WEBHOOK_SECRET'),      // HASH API key used to verify webhook hashKey and generate iframe hashKey
+    'FAWATERK_PROVIDER_KEY' => env('FAWATERK_PROVIDER_KEY'),          // Provider Key from Integration → Fawaterk (used for iframe)
+    'FAWATERK_CHECKOUT_MODE' => env('FAWATERK_CHECKOUT_MODE', 'redirect'), // redirect or iframe
+    'FAWATERK_IFRAME_JS_URL' => env('FAWATERK_IFRAME_JS_URL', 'https://app.fawaterk.com/fawaterkPlugin/fawaterkPlugin.min.js'),
+    'FAWATERK_IFRAME_LISTING' => env('FAWATERK_IFRAME_LISTING', 'horizontal'), // horizontal or vertical
+    'FAWATERK_IFRAME_REDIRECT_OUT' => env('FAWATERK_IFRAME_REDIRECT_OUT', true), // redirect out of iframe after payment
 
     #PayPal
     'PAYPAL_CLIENT_ID' => env('PAYPAL_CLIENT_ID'),

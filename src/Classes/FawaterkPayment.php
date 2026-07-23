@@ -18,6 +18,11 @@ class FawaterkPayment extends BaseController implements PaymentInterface
     public $fawaterk_currency;
     public $fawaterk_payment_method_id;
     public $fawaterk_webhook_secret;
+    public $fawaterk_provider_key;
+    public $fawaterk_checkout_mode;
+    public $fawaterk_iframe_js_url;
+    public $fawaterk_iframe_listing;
+    public $fawaterk_iframe_redirect_out;
     public $verify_route_name;
     public $app_name;
 
@@ -31,6 +36,11 @@ class FawaterkPayment extends BaseController implements PaymentInterface
         $this->fawaterk_currency = config('dpsoft-payments.FAWATERK_CURRENCY', 'EGP');
         $this->fawaterk_payment_method_id = config('dpsoft-payments.FAWATERK_PAYMENT_METHOD_ID', 2);
         $this->fawaterk_webhook_secret = config('dpsoft-payments.FAWATERK_WEBHOOK_SECRET');
+        $this->fawaterk_provider_key = config('dpsoft-payments.FAWATERK_PROVIDER_KEY');
+        $this->fawaterk_checkout_mode = strtolower(config('dpsoft-payments.FAWATERK_CHECKOUT_MODE', 'redirect'));
+        $this->fawaterk_iframe_js_url = config('dpsoft-payments.FAWATERK_IFRAME_JS_URL', 'https://app.fawaterk.com/fawaterkPlugin/fawaterkPlugin.min.js');
+        $this->fawaterk_iframe_listing = config('dpsoft-payments.FAWATERK_IFRAME_LISTING', 'horizontal');
+        $this->fawaterk_iframe_redirect_out = filter_var(config('dpsoft-payments.FAWATERK_IFRAME_REDIRECT_OUT', true), FILTER_VALIDATE_BOOLEAN);
         $this->verify_route_name = config('dpsoft-payments.VERIFY_ROUTE_NAME');
         $this->app_name = config('dpsoft-payments.APP_NAME');
     }
@@ -108,11 +118,19 @@ class FawaterkPayment extends BaseController implements PaymentInterface
 
         $this->currency = $this->currency ?? $this->fawaterk_currency;
 
-        $localReference = $this->user_id ? (string) $this->user_id : uniqid();
+        if ($this->fawaterk_checkout_mode === 'iframe') {
+            return $this->payWithIframe();
+        }
 
+        return $this->payWithRedirect();
+    }
+
+    private function buildPaymentRequestBody(): array
+    {
+        $localReference = $this->user_id ? (string) $this->user_id : uniqid();
         $verifyUrl = route($this->verify_route_name, ['gateway' => 'fawaterk']);
 
-        $payload = [
+        return [
             'cartTotal' => $this->formatAmount($this->amount, $this->currency),
             'currency' => $this->currency,
             'customer' => [
@@ -141,6 +159,12 @@ class FawaterkPayment extends BaseController implements PaymentInterface
             ],
             'invoice_number' => $localReference,
         ];
+    }
+
+    private function payWithRedirect(): array
+    {
+        $payload = $this->buildPaymentRequestBody();
+        $localReference = $payload['invoice_number'];
 
         try {
             $response = Http::withHeaders($this->getAuthHeaders())->post($this->fawaterk_base_url . '/api/v2/createInvoiceLink', $payload);
@@ -173,6 +197,70 @@ class FawaterkPayment extends BaseController implements PaymentInterface
                 'process_data' => ['error' => $e->getMessage()],
             ];
         }
+    }
+
+    private function payWithIframe(): array
+    {
+        if (empty($this->fawaterk_webhook_secret) || empty($this->fawaterk_provider_key)) {
+            return [
+                'payment_id' => null,
+                'html' => '<p>Fawaterk iframe requires FAWATERK_WEBHOOK_SECRET (HASH API key) and FAWATERK_PROVIDER_KEY.</p>',
+                'redirect_url' => '',
+                'success' => false,
+                'message' => __('dpsoft::messages.PAYMENT_FAILED'),
+                'process_data' => [],
+            ];
+        }
+
+        $domain = $this->getIframeDomain();
+        $hashKey = $this->generateIframeHashKey($domain);
+        $requestBody = $this->buildPaymentRequestBody();
+
+        $pluginConfig = [
+            'envType' => $this->fawaterk_mode === 'live' ? 'live' : 'test',
+            'hashKey' => $hashKey,
+            'style' => ['listing' => $this->fawaterk_iframe_listing],
+            'version' => '0',
+            'redirectOutIframe' => $this->fawaterk_iframe_redirect_out,
+            'requestBody' => $requestBody,
+        ];
+
+        $pluginConfigJson = json_encode($pluginConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP);
+
+        $html = <<<HTML
+<div id="fawaterkDivId"></div>
+<script src="{$this->fawaterk_iframe_js_url}"></script>
+<script>
+(function() {
+    var pluginConfig = {$pluginConfigJson};
+    fawaterkCheckout(pluginConfig);
+})();
+</script>
+HTML;
+
+        return [
+            'payment_id' => $requestBody['invoice_number'],
+            'html' => $html,
+            'redirect_url' => '',
+        ];
+    }
+
+    private function getIframeDomain(): string
+    {
+        $domain = '';
+        if (function_exists('request') && request()) {
+            $domain = rtrim(request()->getSchemeAndHttpHost(), '/');
+        }
+        if (empty($domain)) {
+            $domain = rtrim(config('app.url', 'https://example.com'), '/');
+        }
+        return $domain;
+    }
+
+    private function generateIframeHashKey(string $domain): string
+    {
+        $queryParam = "Domain={$domain}&ProviderKey={$this->fawaterk_provider_key}";
+        return hash_hmac('sha256', $queryParam, $this->fawaterk_webhook_secret, false);
     }
 
     /**
